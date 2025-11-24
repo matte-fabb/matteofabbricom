@@ -1,0 +1,89 @@
+---
+// --- FRONTMATTER (Server Side Logic) ---
+// Qui recuperiamo i dati prima che la pagina venga inviata al browser.
+
+const pageTitle = "Matteo Fabbri Blog";
+const STRAPI_URL = import.meta.env.PUBLIC_STRAPI_URL;
+
+// Definiamo la "forma" dei dati che ci aspettiamo (TypeScript Interface)
+// Questo aiuta VS Code a suggerirti i nomi giusti e prevenire errori.
+interface Article {
+  documentId: string;
+  Title: string;      // Attenzione: Rispetto la tua maiuscola vista nel JSON
+  description: string;
+  slug: string;
+  cover: {
+    url: string;
+  } | null; // La cover potrebbe non esserci
+}
+
+// 1. Eseguiamo la chiamata a Strapi
+const response = await fetch(`${STRAPI_URL}/api/articles?populate=*`);
+
+// 2. Controlliamo se la chiamata è andata a buon fine
+if (!response.ok) {
+  throw new Error(`Errore nella chiamata a Strapi: ${response.statusText}`);
+}
+
+// 3. Estraiamo il JSON
+const json = await response.json();
+const articles: Article[] = json.data;
+
+// Console log per debug (lo vedrai nel terminale di VS Code, non nel browser)
+console.log("Articoli trovati:", articles.length);
+---
+
+<html lang="it">
+	<head>
+		<meta charset="utf-8" />
+		<link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+		<meta name="viewport" content="width=device-width" />
+		<meta name="generator" content={Astro.generator} />
+		<title>{pageTitle}</title>
+        <style>
+            /* Un po' di CSS veloce per non vedere tutto brutto */
+            body { font-family: sans-serif; margin: 0; padding: 0; line-height: 1.6; }
+            .container { max-width: 800px; margin: 0 auto; padding: 20px; }
+            .article-card { border: 1px solid #ddd; padding: 15px; margin-bottom: 20px; border-radius: 8px; }
+            .article-card img { max-width: 100%; height: auto; border-radius: 4px; }
+            h1 { color: #333; }
+            a { color: #005bb5; text-decoration: none; font-weight: bold; }
+        </style>
+	</head>
+	<body>
+        <header style="background: #f4f4f4; padding: 20px 0;">
+            <div class="container">
+                <h1>{pageTitle}</h1>
+                <p>Sviluppato con Astro e Strapi su Railway.</p>
+            </div>
+        </header>
+
+        <main class="container">
+            <h2>Ultimi Articoli</h2>
+            
+            {articles.map((article) => (
+                <article class="article-card">
+                    {/* Gestione Immagine: Se c'è, mostrala. Nota come aggiungiamo l'URL base prima dell'url relativo */}
+                    {article.cover && (
+                        <img 
+                            src={`${STRAPI_URL}${article.cover.url}`} 
+                            alt={article.Title} 
+                        />
+                    )}
+                    
+                    <h3>{article.Title}</h3>
+                    <p>{article.description}</p>
+                    
+                    <a href={`/blog/${article.slug}`}>Leggi tutto &rarr;</a>
+                </article>
+            ))}
+            
+            {articles.length === 0 && <p>Nessun articolo trovato.</p>}
+
+        </main>
+
+        <footer style="text-align: center; padding: 40px; font-size: 0.8rem; color: #666;">
+            <p>&copy; 2025 Matteo Fabbri</p>
+        </footer>
+	</body>
+</html>
